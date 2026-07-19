@@ -17,6 +17,16 @@
     document.getElementById("prevWeekBtn").addEventListener("click", () => App.render.shiftWeek(-7));
     document.getElementById("nextWeekBtn").addEventListener("click", () => App.render.shiftWeek(7));
 
+    document.getElementById("resetDataBtn").addEventListener("click", () => {
+      const ok = confirm(
+        "入力した予定・教科・レイアウト・持ち物ルールなど、すべてのデータを削除して初期状態に戻します。\n" +
+          "この操作は取り消せません。本当によろしいですか？"
+      );
+      if (!ok) return;
+      App.storage.resetAll();
+      location.reload();
+    });
+
     // イラストパレット（教科セルへドラッグ＆ドロップするための一覧）。開いた時に一度だけ作る
     const paletteContainer = document.getElementById("imagePalette");
     let paletteBuilt = false;

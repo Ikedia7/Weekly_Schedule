@@ -30,6 +30,7 @@ App.dataStore = (function () {
     belongingsRules = App.storage.loadBelongingsRules();
     upgradeLayoutTypes();
     normalizeCheckCellValues();
+    normalizeDefaultSubjects();
   }
 
   function persist() {
@@ -67,6 +68,23 @@ App.dataStore = (function () {
     if (changed) persist();
   }
 
+  // 「帰り」は基本「勇気付けタイム」、「1限目」は基本「朝の会」なので、
+  // まだ何も選ばれていない（空欄の）既存セルを一度だけこの初期値に揃える
+  // （新規セルの初期値は createEmptyCell 側ですでにこの初期値にしている）
+  function normalizeDefaultSubjects() {
+    let changed = false;
+    masterData.forEach((entry) => {
+      Object.entries(DEFAULT_SUBJECT_BY_SECTION).forEach(([sectionId, defaultSubject]) => {
+        const cell = entry.cells && entry.cells[sectionId];
+        if (cell && cell.type === "subject" && cell.subject === "") {
+          cell.subject = defaultSubject;
+          changed = true;
+        }
+      });
+    });
+    if (changed) persist();
+  }
+
   // ---- 教科マスタ ----
 
   function getSubjects() {
@@ -93,8 +111,15 @@ App.dataStore = (function () {
     App.storage.saveLayout(layout);
   }
 
-  function createEmptyCell(type) {
-    if (type === "subject") return { type, subject: "", note: "" };
+  // 「帰り」「1限目」は先生の運用上ほぼ固定なので、未選択時の初期値を教科マスタの
+  // 特定の教科に固定する（他のsubject型セクションは従来通り空欄が初期値）
+  const DEFAULT_SUBJECT_BY_SECTION = {
+    section_gohome: "yuukizuke",
+    section_period1: "asanokai",
+  };
+
+  function createEmptyCell(type, sectionId) {
+    if (type === "subject") return { type, subject: DEFAULT_SUBJECT_BY_SECTION[sectionId] || "", note: "" };
     if (type === "check") return { type, value: "○" }; // 給食・そうじなどは基本○
     if (type === "list") return { type, items: [] };
     return { type: "text", value: "" };
@@ -106,7 +131,11 @@ App.dataStore = (function () {
   function reconcileCellType(existingCell, section) {
     if (existingCell.type === section.type) return existingCell;
     if (section.type === "subject") {
-      return { type: "subject", subject: "", note: existingCell.value || existingCell.note || "" };
+      return {
+        type: "subject",
+        subject: DEFAULT_SUBJECT_BY_SECTION[section.id] || "",
+        note: existingCell.value || existingCell.note || "",
+      };
     }
     if (section.type === "text") {
       const source = existingCell.type === "list" ? (existingCell.items || []).join("\n") : existingCell.value || existingCell.note || "";
@@ -120,7 +149,7 @@ App.dataStore = (function () {
         .filter(Boolean);
       return { type: "list", items };
     }
-    return createEmptyCell(section.type);
+    return createEmptyCell(section.type, section.id);
   }
 
   // ---- 持ち物の自動追加ルール ----
@@ -156,7 +185,7 @@ App.dataStore = (function () {
   function createEmptyDayEntry(date) {
     const cells = {};
     layout.forEach((section) => {
-      cells[section.id] = createEmptyCell(section.type);
+      cells[section.id] = createEmptyCell(section.type, section.id);
     });
     const dayOfWeek = App.dateUtils.getDayOfWeekLabel(date);
     // 新しい日を作った時点の曜日で、曜日条件の持ち物ルールを一度だけ適用する
@@ -178,12 +207,34 @@ App.dataStore = (function () {
     return entry;
   }
 
+  // 新しいルールを登録した時に呼ぶ: すでにマスタに存在する日のうち、
+  // このルールの条件（曜日 or 教科）に合致する日にも、その場で一度だけ持ち物を反映する
+  // （ルール登録前から既に画面に表示されていた日にも、編集画面・Excel出力の両方に出るように）
+  function backfillBelongingsRule(rule) {
+    let changed = false;
+    masterData.forEach((entry) => {
+      const matches =
+        (rule.conditionType === "dayOfWeek" && entry.dayOfWeek === rule.conditionValue) ||
+        (rule.conditionType === "subject" &&
+          Object.values(entry.cells || {}).some((cell) => cell.type === "subject" && cell.subject === rule.conditionValue));
+      if (!matches) return;
+      layout.forEach((section) => {
+        if (section.type !== "list") return;
+        const cell = entry.cells[section.id];
+        if (!cell || cell.items.includes(rule.item)) return;
+        cell.items.push(rule.item);
+        changed = true;
+      });
+    });
+    if (changed) persist();
+  }
+
   // 旧スキーマ（periods配列+note固定欄）のデータを、現在のレイアウトに合わせて
   // 極力引き継ぐための軽い移行処理。完全な再現は狙わず、テスト入力程度を救済する。
   function migrateLegacyEntry(entry) {
     const cells = {};
     layout.forEach((section) => {
-      cells[section.id] = createEmptyCell(section.type);
+      cells[section.id] = createEmptyCell(section.type, section.id);
     });
 
     const subjectSections = layout.filter((s) => s.type === "subject");
@@ -223,7 +274,7 @@ App.dataStore = (function () {
     layout.forEach((section) => {
       const existing = entry.cells[section.id];
       if (!existing) {
-        entry.cells[section.id] = createEmptyCell(section.type);
+        entry.cells[section.id] = createEmptyCell(section.type, section.id);
         changed = true;
       } else if (existing.type !== section.type) {
         entry.cells[section.id] = reconcileCellType(existing, section);
@@ -328,5 +379,6 @@ App.dataStore = (function () {
     getBelongingsRules,
     setBelongingsRules,
     applySubjectBelongingsRules,
+    backfillBelongingsRule,
   };
 })();

@@ -2,7 +2,8 @@
  * 「持ち物の自動追加ルール」画面。
  * 「この曜日は必ずこれが要る」「この教科の日は必ずこれが要る」というルールを登録・削除できる。
  * 実際にその日の持ち物欄へ追加する処理自体は js/dataStore.js 側（曜日は新しい日を作った時、
- * 教科は教科プルダウンを選んだ時）で行う。ここは登録・削除のUIだけを担当する。
+ * 教科は教科プルダウンを選んだ時、加えてルール登録時にすでにある日程へ遡って適用）で行う。
+ * ここは登録・削除のUIだけを担当する。
  */
 window.App = window.App || {};
 
@@ -86,13 +87,17 @@ App.belongingsRulesManager = (function () {
     if (!item || !valueSelect.value) return;
 
     const rules = dataStore.getBelongingsRules();
-    rules.push({
+    const newRule = {
       id: `rule_${Date.now()}`,
       conditionType: typeSelect.value,
       conditionValue: valueSelect.value,
       item,
-    });
+    };
+    rules.push(newRule);
     dataStore.setBelongingsRules(rules);
+    // 登録前からすでにある日程にも、条件が合えばその場で持ち物を反映する
+    dataStore.backfillBelongingsRule(newRule);
+    App.render.renderAll();
 
     itemInput.value = "";
     renderList();

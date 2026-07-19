@@ -71,6 +71,16 @@ button:hover {
   background: #1f56c4;
 }
 
+.danger-btn {
+  background: #fff;
+  color: #a33;
+  border-color: #a33;
+}
+
+.danger-btn:hover {
+  background: #fdecec;
+}
+
 .hint {
   font-size: 0.85rem;
   color: #555;

@@ -19,6 +19,7 @@ App.config = {
   // 予定表の行構成（初期レイアウト）。先生が「予定表のレイアウト編集」画面で
   // 自由に追加・削除・並べ替えできる。ここは初回起動時の初期値。
   // type: "text"=自由記述（複数行）/ "subject"=教科プルダウン+イラスト / "check"=○×
+  // / "list"=持ち物のような追加・削除できる項目リスト
   defaultLayout: [
     { id: "section_notice", label: "お知らせ", type: "text" },
     { id: "section_morning", label: "朝", type: "subject" },
@@ -31,7 +32,7 @@ App.config = {
     { id: "section_period5", label: "5", type: "subject" },
     { id: "section_period6", label: "6", type: "subject" },
     { id: "section_gohome", label: "帰り", type: "subject" },
-    { id: "section_belongings", label: "持ち物", type: "text" },
+    { id: "section_belongings", label: "持ち物", type: "list" },
     { id: "section_yotsuba", label: "下校", type: "text" },
   ],
 
@@ -49,6 +50,19 @@ App.config = {
     { id: "gaikokugo", name: "外国語", image: "images/library/6_文化・社会/602_学校/602056英語.gif" },
     { id: "sougou", name: "総合", image: "images/library/2_動き・様子/204_行動・行為/204034考える.gif" },
     { id: "gakkatsu", name: "学活", image: "images/library/1_人・動植物/101_人物/101013友達.gif" },
+    // 「帰り」「1限目」の既定値（dataStore.jsのDEFAULT_SUBJECT_BY_SECTIONから参照）
+    { id: "asanokai", name: "朝の会", image: "images/library/5_家の外/504_天気・季節/504001晴れ・太陽.gif" },
+    { id: "yuukizuke", name: "勇気付けタイム", image: "images/library/2_動き・様子/204_行動・行為/204002さようなら.gif" },
     { id: "", name: "（空欄）", image: "" },
+  ],
+
+  // 持ち物の自動追加ルール（初期値）。「持ち物ルールの管理」画面で追加・削除できる。
+  // 曜日ルールは登録順のまま持ち物欄に並ぶ。
+  defaultBelongingsRules: [
+    { id: "rule_default_1", conditionType: "dayOfWeek", conditionValue: "月", item: "上ぐつ" },
+    { id: "rule_default_2", conditionType: "dayOfWeek", conditionValue: "月", item: "学年ぼうし" },
+    { id: "rule_default_3", conditionType: "dayOfWeek", conditionValue: "月", item: "白衣・おぼん" },
+    { id: "rule_default_4", conditionType: "dayOfWeek", conditionValue: "月", item: "給食袋(マスク)" },
+    { id: "rule_default_5", conditionType: "subject", conditionValue: "taiiku", item: "体育着" },
   ],
 };

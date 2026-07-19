@@ -34,11 +34,19 @@ App.excelExport = (function () {
     section_belongings: [17, 18, 19, 20, 21], // 持ち物は5行に分けて1行ずつ書き込む
     section_yotsuba: [22],
   };
-  const TEMPLATE_WEEK_NOTE_ROW = 25; // 「担任より」（日付にひもづかない週単位のメモ）
-  const TEMPLATE_LAST_ROW = 27; // これ以降の行は先生が追加した独自セクション用に空けておく
+  const TEMPLATE_WEEK_NOTE_ROW = 24; // 「担任より」（日付にひもづかない週単位のメモ）
+  const TEMPLATE_LAST_ROW = 26; // これ以降の行は先生が追加した独自セクション用に空けておく
 
   // 行の種類ごとの既定の高さ（雛形が無い場合や追加行に使う）
   const ROW_HEIGHT_BY_TYPE = { text: 60, subject: 46, check: 20, list: 60 };
+  // 「担任より」欄（ラベル無し・1行結合）の高さ。雛形側の実際の高さに合わせている
+  const WEEK_NOTE_ROW_HEIGHT = 70.8;
+
+  // 特定の教科だけ、イラストの高さ・縦位置を既定（高さ3/4・上下中央）から変えたい場合の例外設定。
+  // 「勇気付けタイム」は、セルの下から高さ6/10までに収まるよう小さめ・下寄せにする
+  const SUBJECT_IMAGE_OVERRIDES = {
+    yuukizuke: { maxHeightRatio: 0.6, alignBottom: true },
+  };
 
   async function fetchImageAsBase64(url) {
     // アップロード画像はすでにdata URL（base64）なのでそのまま使う
@@ -85,7 +93,7 @@ App.excelExport = (function () {
   function formatDateRangeLabel(dates) {
     const fmt = (iso) => {
       const [, m, d] = iso.split("-");
-      return `${Number(m)}/${Number(d)}`;
+      return `${Number(m)}月${Number(d)}日`;
     };
     return `${fmt(dates[0])}〜${fmt(dates[dates.length - 1])}の予定`;
   }
@@ -107,7 +115,9 @@ App.excelExport = (function () {
   // ---- 雛形ファイルの読み込み・見た目の抽出 ----
 
   async function loadTemplateWorkbook() {
-    const res = await fetch(TEMPLATE_PATH);
+    // 先生がExcelでテンプレートを直接更新した場合に、ブラウザのキャッシュ経由で
+    // 古い内容のまま読み込んでしまわないよう、毎回キャッシュを使わず取得し直す
+    const res = await fetch(TEMPLATE_PATH, { cache: "no-store" });
     if (!res.ok) throw new Error(`テンプレートファイル(${TEMPLATE_PATH})の読み込みに失敗しました`);
     const buffer = await res.arrayBuffer();
     const workbook = new ExcelJS.Workbook();
@@ -169,13 +179,39 @@ App.excelExport = (function () {
 
   const EMU_PER_PIXEL = 9525;
 
+  // 特定のセクションだけ、教科名のフォントサイズを雛形の既定値から変えたい場合の例外設定
+  const SECTION_FONT_SIZE_OVERRIDES = {
+    section_gohome: 10, // 帰り
+  };
+
+  // 持ち物リストの中で、特定の項目名だけフォントサイズを変えたい場合の例外設定
+  const BELONGINGS_ITEM_FONT_SIZE_OVERRIDES = {
+    "給食袋(マスク)": 9,
+  };
+
+  // 持ち物の項目名配列をリッチテキストのrunsに組み立てる（例外指定の項目だけサイズを変える）
+  function buildListRichText(items, baseFont) {
+    const runs = [];
+    items.forEach((item, index) => {
+      if (index > 0) runs.push({ font: baseFont ? { ...baseFont } : undefined, text: "\n" });
+      const overrideSize = BELONGINGS_ITEM_FONT_SIZE_OVERRIDES[item];
+      const font = baseFont ? { ...baseFont } : {};
+      if (overrideSize) font.size = overrideSize;
+      runs.push({ font, text: item });
+    });
+    return runs;
+  }
+
   // 教科名＋備考をリッチテキストで組み立てる。備考は同じセルの中で改行し、
   // フォントサイズ8だけ小さくして「テキストボックス風」に見せる
   // （ExcelJSには独立したテキストボックス図形を挿入する機能が無いため）
-  function buildSubjectRichText(cell, subject, baseFont) {
+  function buildSubjectRichText(cell, subject, baseFont, sectionId) {
     const runs = [];
+    const nameFontSize = SECTION_FONT_SIZE_OVERRIDES[sectionId];
     if (subject && subject.id) {
-      runs.push({ font: baseFont ? { ...baseFont } : undefined, text: subject.name });
+      const nameFont = baseFont ? { ...baseFont } : {};
+      if (nameFontSize) nameFont.size = nameFontSize;
+      runs.push({ font: nameFont, text: subject.name });
     }
     if (cell.note) {
       if (runs.length > 0) runs.push({ font: baseFont ? { ...baseFont } : undefined, text: "\n" });
@@ -184,12 +220,12 @@ App.excelExport = (function () {
     return runs;
   }
 
-  async function writeSubjectCell(workbook, sheet, cell, colIndex, rowIndex, style) {
+  async function writeSubjectCell(workbook, sheet, cell, colIndex, rowIndex, style, sectionId) {
     const subject = dataStore.getSubjectById(cell.subject);
     const excelCell = sheet.getRow(rowIndex).getCell(colIndex);
 
     const baseFont = excelCell.font;
-    const runs = buildSubjectRichText(cell, subject, baseFont);
+    const runs = buildSubjectRichText(cell, subject, baseFont, sectionId);
     excelCell.value = runs.length > 0 ? { richText: runs } : null;
 
     if (style) {
@@ -228,14 +264,18 @@ App.excelExport = (function () {
           const colWidthPx = excelColumnWidthToPixels(sheet.getColumn(colIndex).width);
           const rowHeightPx = excelRowHeightToPixels(sheet.getRow(rowIndex).height);
           const margin = 2;
-          // 文字（左側）と重ならないよう、幅はセルの半分・高さはセルの3/4を上限にし、
-          // 縦横比を保ったまま小さい方に合わせて正方形にする
+          const override = SUBJECT_IMAGE_OVERRIDES[cell.subject];
+          // 文字（左側）と重ならないよう、幅はセルの半分・高さはセルの3/4（教科ごとの例外があれば
+          // そちらの比率）を上限にし、縦横比を保ったまま小さい方に合わせて正方形にする
           const maxWidth = colWidthPx / 2;
-          const maxHeight = (rowHeightPx * 3) / 4;
+          const maxHeight = rowHeightPx * (override ? override.maxHeightRatio : 3 / 4);
           const size = Math.max(12, Math.min(maxWidth, maxHeight) - margin);
           const midpoint = colWidthPx / 2;
           const leftEdgePx = Math.max(midpoint, colWidthPx - size - margin);
-          const topEdgePx = Math.max(0, (rowHeightPx - size) / 2);
+          // 通常は上下中央だが、例外指定があればセルの下端に揃える
+          const topEdgePx = override && override.alignBottom
+            ? Math.max(0, rowHeightPx - size - margin)
+            : Math.max(0, (rowHeightPx - size) / 2);
           const imageId = workbook.addImage({ base64, extension: ext });
           // ExcelJSの`tl.col`小数指定は列幅に比例しないバグがあり、狙った位置に置けない
           // （実測で確認済み）。nativeColOff/nativeRowOffで実ピクセル→EMU換算した
@@ -275,10 +315,19 @@ App.excelExport = (function () {
     }
   }
 
-  // 持ち物リスト（list）セル: 項目を改行区切りの1つの文字列にまとめ、
-  // 通常のtextセルと同じ書き方で1セルに折り返し表示する
+  // 持ち物リスト（list）セル: 項目を改行区切りのリッチテキストとして1セルにまとめる
+  // （特定の項目だけフォントサイズを変えられるよう、通常のtextセルとは別に組み立てる）
   function writeListCell(sheet, cell, colIndex, rowIndex, style) {
-    writeTextCell(sheet, { value: (cell.items || []).join("\n") }, colIndex, rowIndex, style);
+    const excelCell = sheet.getRow(rowIndex).getCell(colIndex);
+    const items = cell.items || [];
+    const baseFont = excelCell.font;
+    excelCell.value = items.length > 0 ? { richText: buildListRichText(items, baseFont) } : null;
+    if (style) {
+      excelCell.alignment = { horizontal: "left", vertical: "top", wrapText: true };
+      applyStyle(excelCell, style);
+    } else {
+      excelCell.alignment = { ...excelCell.alignment, wrapText: true };
+    }
   }
 
   // 持ち物のように複数行の雛形セル（例: 17〜21行目）へ、リストの項目を1行ずつ振り分ける
@@ -287,7 +336,13 @@ App.excelExport = (function () {
     const lines = cell.items || [];
     rowIndices.forEach((rowIndex, i) => {
       const excelCell = sheet.getRow(rowIndex).getCell(colIndex);
-      excelCell.value = lines[i] || "";
+      const text = lines[i] || "";
+      const overrideSize = BELONGINGS_ITEM_FONT_SIZE_OVERRIDES[text];
+      if (text && overrideSize) {
+        excelCell.value = { richText: [{ font: { ...excelCell.font, size: overrideSize }, text }] };
+      } else {
+        excelCell.value = text;
+      }
       excelCell.alignment = { ...excelCell.alignment, wrapText: true };
     });
   }
@@ -335,7 +390,7 @@ App.excelExport = (function () {
         if (rows.length > 1) {
           writeMultiLineTemplateCell(sheet, cell, col, rows);
         } else if (section.type === "subject") {
-          await writeSubjectCell(workbook, sheet, cell, col, rows[0]);
+          await writeSubjectCell(workbook, sheet, cell, col, rows[0], undefined, section.id);
         } else if (section.type === "check") {
           writeCheckCell(sheet, cell, col, rows[0]);
         } else if (section.type === "list") {
@@ -371,7 +426,7 @@ App.excelExport = (function () {
           const col = TEMPLATE_DAY_COLS[dayIndex];
           const cell = entries[dayIndex].cells[section.id];
           if (section.type === "subject") {
-            await writeSubjectCell(workbook, sheet, cell, col, rowIndex);
+            await writeSubjectCell(workbook, sheet, cell, col, rowIndex, undefined, section.id);
           } else if (section.type === "check") {
             writeCheckCell(sheet, cell, col, rowIndex);
           } else if (section.type === "list") {
@@ -434,7 +489,7 @@ App.excelExport = (function () {
         const cell = entries[dayIndex].cells[section.id];
         const col = dayIndex + 2;
         if (section.type === "subject") {
-          await writeSubjectCell(workbook, sheet, cell, col, rowIndex, style);
+          await writeSubjectCell(workbook, sheet, cell, col, rowIndex, style, section.id);
         } else if (section.type === "check") {
           writeCheckCell(sheet, cell, col, rowIndex, style);
         } else if (section.type === "list") {
@@ -446,14 +501,13 @@ App.excelExport = (function () {
       row.eachCell({ includeEmpty: true }, (cell) => (cell.border = borderAll()));
     }
 
-    // 担任より（日付にひもづかない週単位のメモ）
+    // 担任より（日付にひもづかない週単位のメモ）。雛形と同じく、ラベルの行は設けず
+    // 全列を結合した1行にそのままメモを書き込む（高さも雛形に合わせて広めに取る）
     const weekNote = dataStore.getWeekNote(dates[0]);
     const noteRowIndex = layout.length + 4;
-    sheet.mergeCells(noteRowIndex, 2, noteRowIndex, totalCols);
-    sheet.getRow(noteRowIndex).getCell(1).value = "担任より";
-    sheet.getRow(noteRowIndex).getCell(1).alignment = { horizontal: "center", vertical: "middle" };
-    sheet.getRow(noteRowIndex).height = ROW_HEIGHT_BY_TYPE.text;
-    const noteCell = sheet.getRow(noteRowIndex).getCell(2);
+    sheet.mergeCells(noteRowIndex, 1, noteRowIndex, totalCols);
+    sheet.getRow(noteRowIndex).height = WEEK_NOTE_ROW_HEIGHT;
+    const noteCell = sheet.getRow(noteRowIndex).getCell(1);
     noteCell.value = weekNote;
     noteCell.alignment = { horizontal: "left", vertical: "top", wrapText: true };
     sheet.getRow(noteRowIndex).eachCell({ includeEmpty: true }, (cell) => (cell.border = borderAll()));

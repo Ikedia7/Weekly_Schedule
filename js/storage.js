@@ -84,11 +84,17 @@ App.storage = (function () {
   }
 
   function loadBelongingsRules() {
-    return load(KEYS.belongingsRules, []);
+    return load(KEYS.belongingsRules, App.config.defaultBelongingsRules);
   }
 
   function saveBelongingsRules(rules) {
     save(KEYS.belongingsRules, rules);
+  }
+
+  // アプリが使っているLocalStorageの内容をすべて消す（初期化ボタン用）。
+  // 同じオリジンの他のデータを巻き込まないよう、KEYSに登録したキーだけを個別に削除する
+  function resetAll() {
+    Object.values(KEYS).forEach((key) => localStorage.removeItem(key));
   }
 
   return {
@@ -106,5 +112,6 @@ App.storage = (function () {
     saveWeekNotes,
     loadBelongingsRules,
     saveBelongingsRules,
+    resetAll,
   };
 })();
