@@ -1,0 +1,12 @@
+# Microsoft Officeがファイルを開いている間に作る一時ロックファイル
+~$*.xlsx
+~$*.xls
+~$*.docx
+
+# OSが自動生成するファイル
+.DS_Store
+Thumbs.db
+
+# review/ は確認用の使い捨てフォルダ。中身（実データを含むファイル）はコミットしない
+review/*
+!review/README.md

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>週の予定表作成</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="app-header no-print">
+    <h1>週の予定表作成</h1>
+    <div class="toolbar">
+      <label class="week-select-label">
+        週を選択
+        <input id="weekSelectInput" type="date" />
+      </label>
+      <button id="prevWeekBtn" type="button">＜ 前の週</button>
+      <button id="nextWeekBtn" type="button">次の週 ＞</button>
+      <button id="manageSubjectsBtn" type="button">教科・イラストの管理</button>
+      <button id="editLayoutBtn" type="button">予定表のレイアウト編集</button>
+      <button id="manageBelongingsRulesBtn" type="button">持ち物ルールの管理</button>
+      <button id="toggleImagePaletteBtn" type="button">イラストパレット</button>
+      <button id="exportExcelBtn" type="button" class="primary-btn">Excel出力</button>
+    </div>
+  </header>
+
+  <main>
+    <p class="hint no-print">
+      「週を選択」で日付を選ぶと、その週の月〜金＋翌週月曜（6日間）が自動で表示されます。
+      追加でその他の日を表示したい場合は、右端の「＋ 追加」で日付を指定して増やせます
+      （表示は5〜9日の範囲）。イラストパレットの画像は教科欄にドラッグ＆ドロップして割り当てられます。
+      入力した内容はブラウザに自動保存され、次回起動時も復元されます。
+    </p>
+
+    <div id="imagePalette" class="image-palette hidden no-print"></div>
+
+    <div class="title-bar">
+      <input id="classNameInput" type="text" class="class-name-input" placeholder="クラス名（例: ４５６年４組）" />
+      <span id="titleDateRange" class="title-date-range"></span>
+    </div>
+
+    <div id="scheduleContainer" class="schedule-container"></div>
+
+    <div class="week-note-bar">
+      <label for="weekNoteInput">担任より</label>
+      <textarea id="weekNoteInput" rows="3" placeholder="日付にひもづかない、週全体への一言メモ"></textarea>
+    </div>
+  </main>
+
+  <div id="subjectManagerOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>教科とイラストの管理</h2>
+        <button id="closeSubjectManagerBtn" type="button" class="modal-close" title="閉じる">×</button>
+      </div>
+      <p class="modal-hint">
+        教科名の変更・画像の差し替え・新しい教科の追加ができます。変更は自動で保存されます。
+      </p>
+      <div id="subjectManagerList" class="subject-manager-list"></div>
+      <div class="subject-manager-add">
+        <input id="newSubjectName" type="text" placeholder="新しい教科名（例: 家庭科）" />
+        <button id="addSubjectBtn" type="button">＋ 教科を追加</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="layoutManagerOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>予定表のレイアウト編集</h2>
+        <button id="closeLayoutManagerBtn" type="button" class="modal-close" title="閉じる">×</button>
+      </div>
+      <p class="modal-hint">
+        予定表の行（お知らせ・教科・給食など）を追加・削除・並べ替えできます。
+        「▲▼」で順番を、種類は追加時に「自由記述／教科／○×」から選びます。
+      </p>
+      <div id="layoutManagerList" class="layout-manager-list"></div>
+      <div class="layout-manager-add">
+        <input id="newLayoutLabel" type="text" placeholder="新しい行の名前（例: 持ち物）" />
+        <select id="newLayoutType">
+          <option value="text">自由記述</option>
+          <option value="subject">教科</option>
+          <option value="check">○×</option>
+          <option value="list">持ち物リスト</option>
+        </select>
+        <button id="addLayoutRowBtn" type="button">＋ 行を追加</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="belongingsRulesOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>持ち物の自動追加ルール</h2>
+        <button id="closeBelongingsRulesBtn" type="button" class="modal-close" title="閉じる">×</button>
+      </div>
+      <p class="modal-hint">
+        「この曜日は必ずこれが要る」「この教科の日は必ずこれが要る」というルールを登録できます。
+        該当する日には自動で持ち物欄に追加されます（追加された後も、その日ごとに普通に消したり
+        編集したりできます）。
+      </p>
+      <div id="belongingsRulesList" class="belongings-rules-list"></div>
+      <div class="belongings-rules-add">
+        <select id="newRuleConditionType">
+          <option value="dayOfWeek">曜日</option>
+          <option value="subject">教科</option>
+        </select>
+        <select id="newRuleConditionValue"></select>
+        <input id="newRuleItem" type="text" placeholder="持ち物名（例: 体操着）" />
+        <button id="addBelongingsRuleBtn" type="button">＋ ルールを追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ExcelJS（CDN経由）。データは外部送信せず、ブラウザ内だけでxlsxファイルを組み立てる -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+
+  <script src="js/config.js"></script>
+  <script src="js/imageLibrary.js"></script>
+  <script src="js/dateUtils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/dataStore.js"></script>
+  <script src="js/galleryUI.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/subjectManager.js"></script>
+  <script src="js/layoutManager.js"></script>
+  <script src="js/belongingsRulesManager.js"></script>
+  <script src="js/excelExport.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
