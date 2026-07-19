@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>使い方ガイド｜週の予定表作成</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/help.css" />
+</head>
+<body class="help-body">
+
+  <div class="help-header">
+    <h1>使い方ガイド</h1>
+    <a href="index.html">← 予定表の画面に戻る</a>
+  </div>
+
+  <p class="help-intro">
+    このアプリは、週の予定表（時間割・連絡事項）をブラウザ上で作って、Excelファイルとして
+    ダウンロードするための道具です。入力した内容はすべてこのブラウザの中（LocalStorage、
+    ページを閉じても消えない保存領域）に自動保存され、外部のサーバーには送信されません。
+    画面を見ながら操作したい場合は、このページを別タブのまま開いておくと便利です。
+  </p>
+
+  <nav class="help-toc">
+    <h2>もくじ</h2>
+    <ol>
+      <li><a href="#overview">画面全体の見方</a></li>
+      <li><a href="#week">表示する日を選ぶ・増やす／減らす</a></li>
+      <li><a href="#input">予定を入力する（教科・○×・自由記述・持ち物）</a></li>
+      <li><a href="#dragdrop">イラストをドラッグ＆ドロップで割り当てる</a></li>
+      <li><a href="#subjects">教科とイラストを管理する</a></li>
+      <li><a href="#layout">予定表の行（レイアウト）を編集する</a></li>
+      <li><a href="#rules">持ち物の自動追加ルール</a></li>
+      <li><a href="#export">Excel出力・印刷</a></li>
+      <li><a href="#data">データの保存・初期化について</a></li>
+      <li><a href="#opensource">このアプリの公開のされ方について（学校で使っても大丈夫？）</a></li>
+    </ol>
+  </nav>
+
+  <section class="help-section" id="overview">
+    <h2>1. 画面全体の見方</h2>
+    <p>まずは画面のどこに何があるか、大まかに確認しましょう。</p>
+
+    <figure class="shot">
+      <img src="images/help/help_overview.png" alt="アプリ全体の画面。ツールバー・クラス名・予定表・担任よりメモの位置を示す" />
+      <svg viewBox="0 0 1440 1598" preserveAspectRatio="none">
+        <rect class="mark-box" x="70" y="53" width="326" height="46" rx="10"/>
+        <circle class="mark-badge-bg" cx="70" cy="53" r="17"/>
+        <text class="mark-badge-text" x="70" y="54" font-size="19">1</text>
+
+        <rect class="mark-box" x="399" y="53" width="714" height="46" rx="10"/>
+        <circle class="mark-badge-bg" cx="399" cy="53" r="17"/>
+        <text class="mark-badge-text" x="399" y="54" font-size="19">2</text>
+
+        <rect class="mark-box" x="1112" y="53" width="300" height="46" rx="10"/>
+        <circle class="mark-badge-bg" cx="1112" cy="53" r="17"/>
+        <text class="mark-badge-text" x="1112" y="54" font-size="19">3</text>
+
+        <rect class="mark-box" x="16" y="161" width="1408" height="38" rx="8"/>
+        <circle class="mark-badge-bg" cx="16" cy="161" r="17"/>
+        <text class="mark-badge-text" x="16" y="162" font-size="19">4</text>
+
+        <rect class="mark-box" x="16" y="201" width="1408" height="1289" rx="8"/>
+        <circle class="mark-badge-bg" cx="16" cy="201" r="17"/>
+        <text class="mark-badge-text" x="16" y="202" font-size="19">5</text>
+
+        <rect class="mark-box" x="93" y="1499" width="1326" height="60" rx="10"/>
+        <circle class="mark-badge-bg" cx="93" cy="1499" r="17"/>
+        <text class="mark-badge-text" x="93" y="1500" font-size="19">6</text>
+      </svg>
+    </figure>
+
+    <ol class="shot-legend">
+      <li><b>① 週を選ぶ・前後の週へ移動</b> — 日付を選ぶとその週が表示されます。</li>
+      <li><b>② 各種の設定画面を開くボタン</b> — 教科・イラストの管理／レイアウト編集／持ち物ルール／イラストパレットの表示切り替え。</li>
+      <li><b>③ Excel出力・初期化</b> — 予定表をExcelファイルとして保存したり、全データを消して初期状態に戻したりします。</li>
+      <li><b>④ クラス名・表示中の期間</b> — 左の欄にクラス名を入力すると、Excel出力時のタイトルにも使われます。</li>
+      <li><b>⑤ 予定表の本体</b> — 曜日ごとに教科や持ち物などを入力する表です。</li>
+      <li><b>⑥ 担任よりメモ</b> — 特定の日付に紐づかない、週全体への一言メモです。</li>
+    </ol>
+  </section>
+
+  <section class="help-section" id="week">
+    <h2>2. 表示する日を選ぶ・増やす／減らす</h2>
+    <p>
+      予定表に表示する日付は、上の<b>①週を選ぶ</b>で決めます。日付を1つ選ぶと、その週の
+      月〜金＋翌週月曜の6日間が自動で組み立てられます。「＜ 前の週」「次の週 ＞」ボタンでも
+      1週間ずつ移動できます。
+    </p>
+    <p>
+      それ以外にも見せたい日（土曜授業など）があれば、表の右端から日付を指定して追加できます。
+      表示できる日数は5〜9日の範囲です。
+    </p>
+
+    <figure class="shot">
+      <img src="images/help/help_schedule.png" alt="予定表の右端。日付を追加するボタンと、各列の×削除ボタンの位置を示す" />
+      <svg viewBox="0 0 1408 1281" preserveAspectRatio="none">
+        <circle class="mark-circle" cx="187" cy="72" r="20"/>
+        <circle class="mark-badge-bg" cx="187" cy="42" r="15"/>
+        <text class="mark-badge-text" x="187" y="43" font-size="17">1</text>
+
+        <rect class="mark-box" x="1287" y="14" width="121" height="66" rx="10"/>
+        <circle class="mark-badge-bg" cx="1287" cy="14" r="15"/>
+        <text class="mark-badge-text" x="1287" y="15" font-size="17">2</text>
+      </svg>
+    </figure>
+
+    <ol class="shot-legend">
+      <li><b>① ×ボタン</b> — その日を表示から外します（データそのものは消えません。もう一度その日を選べば内容は残っています）。</li>
+      <li><b>② 日付を指定して＋追加</b> — 日付を選んで「＋追加」を押すと、その日が表の右側に追加されます。</li>
+    </ol>
+  </section>
+
+  <section class="help-section" id="input">
+    <h2>3. 予定を入力する（教科・○×・自由記述・持ち物）</h2>
+    <p>
+      予定表の行の種類は「予定表のレイアウト編集」で変更できますが、標準では次の4種類があります。
+      それぞれ入力の仕方が少し違います。
+    </p>
+
+    <figure class="shot">
+      <img src="images/help/help_schedule.png" alt="予定表の1日分の列。自由記述欄・教科欄・○×欄・持ち物欄の位置を示す" />
+      <svg viewBox="0 0 1408 1281" preserveAspectRatio="none">
+        <rect class="mark-box" x="76" y="90" width="223" height="56" rx="8"/>
+        <circle class="mark-badge-bg" cx="76" cy="90" r="15"/>
+        <text class="mark-badge-text" x="76" y="91" font-size="17">1</text>
+
+        <circle class="mark-circle" cx="187" cy="180" r="30"/>
+        <circle class="mark-badge-bg" cx="187" cy="150" r="15"/>
+        <text class="mark-badge-text" x="187" y="151" font-size="17">2</text>
+
+        <rect class="mark-box" x="76" y="203" width="223" height="27" rx="6"/>
+        <circle class="mark-badge-bg" cx="76" cy="203" r="15"/>
+        <text class="mark-badge-text" x="76" y="204" font-size="17">3</text>
+
+        <rect class="mark-box" x="76" y="232" width="223" height="27" rx="6"/>
+        <circle class="mark-badge-bg" cx="76" cy="232" r="15"/>
+        <text class="mark-badge-text" x="76" y="233" font-size="17">4</text>
+
+        <circle class="mark-circle" cx="187" cy="712" r="26"/>
+        <circle class="mark-badge-bg" cx="187" cy="686" r="15"/>
+        <text class="mark-badge-text" x="187" y="687" font-size="17">5</text>
+
+        <rect class="mark-box" x="72" y="1085" width="231" height="130" rx="8"/>
+        <circle class="mark-badge-bg" cx="72" cy="1085" r="15"/>
+        <text class="mark-badge-text" x="72" y="1086" font-size="17">6</text>
+      </svg>
+    </figure>
+
+    <ol class="shot-legend">
+      <li><b>① 自由記述欄</b> — 「お知らせ」「下校」など、文章を自由に書けます。</li>
+      <li><b>② イラスト表示</b> — 教科に対応するイラストが表示されます。イラストパレットからドラッグ＆ドロップして変更できます（次の項目参照）。</li>
+      <li><b>③ 教科プルダウン</b> — その時間の教科を選びます。（空欄）にすると、その時間は使わない扱いになります。</li>
+      <li><b>④ 備考欄</b> — 教科名の下に、補足を一言だけ書けます。</li>
+      <li><b>⑤ ○×欄</b> — 「給食」「そうじ」などの有無を、クリックして○／×で切り替えます。</li>
+      <li><b>⑥ 持ち物リスト</b> — 「＋持ち物を追加」で行を増やし、×で1つずつ削除できます。</li>
+    </ol>
+
+    <p class="note">
+      入力した内容は、キーボードでの入力やプルダウンの選択と同時にブラウザへ自動保存されます。
+      「保存」ボタンは無いので、押し忘れの心配はありません。
+    </p>
+  </section>
+
+  <section class="help-section" id="dragdrop">
+    <h2>4. イラストをドラッグ＆ドロップで割り当てる</h2>
+    <p>
+      ツールバーの「イラストパレット」を開くと、教科欄にドラッグ＆ドロップできるイラスト一覧が
+      表示されます。上のタブ（大分類→中分類）や検索欄でイラストを探し、教科欄の画像部分まで
+      マウスでドラッグして離すと、その1コマだけイラストが差し替わります
+      （教科プルダウンを選び直すと、差し替えたイラストは元に戻ります）。
+    </p>
+
+    <figure class="shot">
+      <img src="images/help/help_drag_drop.png" alt="イラストパレットの1枚を教科欄の画像部分までドラッグする様子" />
+      <svg viewBox="0 0 1440 1901" preserveAspectRatio="none">
+        <defs>
+          <marker id="help-arrowhead" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto">
+            <path d="M0,0 L10,5 L0,10 Z" fill="#e63946"/>
+          </marker>
+        </defs>
+        <path class="mark-arrow" d="M 414,323 C 320,450 260,560 210,650" marker-end="url(#help-arrowhead)"/>
+
+        <circle class="mark-circle" cx="414" cy="323" r="40"/>
+        <circle class="mark-badge-bg" cx="414" cy="280" r="17"/>
+        <text class="mark-badge-text" x="414" y="281" font-size="19">1</text>
+
+        <circle class="mark-circle" cx="203" cy="688" r="30"/>
+        <circle class="mark-badge-bg" cx="203" cy="730" r="17"/>
+        <text class="mark-badge-text" x="203" y="731" font-size="19">2</text>
+      </svg>
+    </figure>
+
+    <ol class="shot-legend">
+      <li><b>① ここをマウスでつかむ</b> — 使いたいイラストの上でマウスボタンを押したままにします。</li>
+      <li><b>② ここまで運んで離す</b> — 割り当てたい教科欄の、イラストが表示される部分（教科プルダウンの上）まで運んでボタンを離します。</li>
+    </ol>
+
+    <p class="note">
+      「教科・イラストの管理」画面から画像を変更すると、その教科すべてに既定のイラストとして
+      使われます。ドラッグ＆ドロップは「今日のこの1コマだけ」のような一時的な差し替えに向いています。
+    </p>
+  </section>
+
+  <section class="help-section" id="subjects">
+    <h2>5. 教科とイラストを管理する</h2>
+    <p>
+      ツールバーの「教科・イラストの管理」から、教科名の変更・イラストの差し替え・新しい教科の
+      追加や削除ができます。ここでの変更は、その教科を使っているすべての予定表に反映されます。
+    </p>
+
+    <figure class="shot">
+      <img src="images/help/help_subject_manager.png" alt="教科とイラストの管理画面。名前欄・画像を変更ボタン・削除ボタンの位置を示す" />
+      <svg viewBox="0 0 680 882" preserveAspectRatio="none">
+        <rect class="mark-box" x="71" y="98" width="410" height="34" rx="6"/>
+        <circle class="mark-badge-bg" cx="71" cy="98" r="14"/>
+        <text class="mark-badge-text" x="71" y="99" font-size="16">1</text>
+
+        <rect class="mark-box" x="480" y="93" width="110" height="45" rx="6"/>
+        <circle class="mark-badge-bg" cx="480" cy="93" r="14"/>
+        <text class="mark-badge-text" x="480" y="94" font-size="16">2</text>
+
+        <rect class="mark-box" x="590" y="93" width="65" height="45" rx="6"/>
+        <circle class="mark-badge-bg" cx="590" cy="93" r="14"/>
+        <text class="mark-badge-text" x="590" y="94" font-size="16">3</text>
+      </svg>
+    </figure>
+
+    <ol class="shot-legend">
+      <li><b>① 教科名</b> — 直接書き換えられます。</li>
+      <li><b>② 画像を変更</b> — イラスト一覧から選ぶか、パソコン内の画像ファイルを選べます。</li>
+      <li><b>③ 削除</b> — この教科をマスタから削除します（すでに予定表で使っている場合は注意してください）。</li>
+    </ol>
+    <p class="note">
+      一覧を下までスクロールすると、「＋ 教科を追加」の欄があり、新しい教科（家庭科など）を
+      追加できます。
+    </p>
+  </section>
+
+  <section class="help-section" id="layout">
+    <h2>6. 予定表の行（レイアウト）を編集する</h2>
+    <p>
+      「予定表のレイアウト編集」では、「お知らせ」「1」「給食」のような予定表の行そのものを
+      追加・削除・並べ替えできます。
+    </p>
+
+    <figure class="shot">
+      <img src="images/help/help_layout_manager.png" alt="予定表のレイアウト編集画面。並べ替えボタン・削除ボタン・新しい行を追加する欄の位置を示す" />
+      <svg viewBox="0 0 680 882" preserveAspectRatio="none">
+        <rect class="mark-box" x="492" y="114" width="99" height="39" rx="6"/>
+        <circle class="mark-badge-bg" cx="492" cy="114" r="14"/>
+        <text class="mark-badge-text" x="492" y="115" font-size="16">1</text>
+
+        <rect class="mark-box" x="590" y="111" width="65" height="45" rx="6"/>
+        <circle class="mark-badge-bg" cx="590" cy="111" r="14"/>
+        <text class="mark-badge-text" x="590" y="112" font-size="16">2</text>
+
+        <rect class="mark-box" x="16" y="850" width="648" height="30" rx="8"/>
+        <circle class="mark-badge-bg" cx="16" cy="850" r="14"/>
+        <text class="mark-badge-text" x="16" y="851" font-size="16">3</text>
+      </svg>
+    </figure>
+
+    <ol class="shot-legend">
+      <li><b>① ▲▼</b> — 行の順番を1つずつ入れ替えます。</li>
+      <li><b>② 削除</b> — その行を予定表から取り除きます。</li>
+      <li><b>③ 新しい行を追加</b> — 名前と種類（自由記述／教科／○×／持ち物リスト）を選んで「＋行を追加」を押します。</li>
+    </ol>
+    <p class="note">
+      行の種類は、追加した後から変更できません。種類を間違えた場合は、いったん削除してから
+      正しい種類で追加し直してください。
+    </p>
+  </section>
+
+  <section class="help-section" id="rules">
+    <h2>7. 持ち物の自動追加ルール</h2>
+    <p>
+      「この曜日は必ずこれが要る」「この教科の日は必ずこれが要る」というルールをあらかじめ
+      登録しておくと、条件に合う日の持ち物欄に自動で追加されます。
+    </p>
+
+    <figure class="shot">
+      <img src="images/help/help_belongings_rules.png" alt="持ち物の自動追加ルール画面。条件の選択欄・持ち物名の入力欄・追加ボタンの位置を示す" />
+      <svg viewBox="0 0 680 456" preserveAspectRatio="none">
+        <rect class="mark-box" x="16" y="397" width="101" height="45" rx="6"/>
+        <circle class="mark-badge-bg" cx="16" cy="397" r="14"/>
+        <text class="mark-badge-text" x="16" y="398" font-size="16">1</text>
+
+        <rect class="mark-box" x="117" y="397" width="402" height="45" rx="6"/>
+        <circle class="mark-badge-bg" cx="117" cy="397" r="14"/>
+        <text class="mark-badge-text" x="117" y="398" font-size="16">2</text>
+
+        <rect class="mark-box" x="519" y="397" width="145" height="45" rx="6"/>
+        <circle class="mark-badge-bg" cx="519" cy="397" r="14"/>
+        <text class="mark-badge-text" x="519" y="398" font-size="16">3</text>
+      </svg>
+    </figure>
+
+    <ol class="shot-legend">
+      <li><b>① 条件を選ぶ</b> — 「曜日」か「教科」を選び、右の欄で具体的な曜日・教科を選びます。</li>
+      <li><b>② 持ち物名を入力</b> — 例：体操着、絵の具セット。</li>
+      <li><b>③ ＋ルールを追加</b> — 登録すると、以後その条件に合う日に自動で持ち物欄へ追加されます。</li>
+    </ol>
+    <p class="note">
+      自動で追加された持ち物も、ふつうの持ち物と同じように、その日ごとに消したり書き換えたり
+      できます。消しても、ルール自体が消えるわけではありません。
+    </p>
+  </section>
+
+  <section class="help-section" id="export">
+    <h2>8. Excel出力・印刷</h2>
+    <p>
+      ツールバーの「Excel出力」（画面全体の見方の③）を押すと、今表示している予定表を
+      Excelファイル（.xlsx）としてダウンロードします。学校で使っている参考の様式に近い
+      見た目になるよう作られています。
+    </p>
+    <p>
+      画面をそのまま印刷したい場合は、ブラウザの印刷機能（Ctrl+P、Macは⌘+P）が使えます。
+      ボタン類やイラストパレットは印刷されず、A4横向きに収まるよう調整されます。
+    </p>
+  </section>
+
+  <section class="help-section" id="data">
+    <h2>9. データの保存・初期化について</h2>
+    <p>
+      入力した予定・教科・レイアウト・持ち物ルールは、すべてこのブラウザのLocalStorage
+      （ページを閉じても消えないブラウザ内の保存領域）に自動で保存されます。次に同じブラウザで
+      開いたときも、続きから編集できます。
+    </p>
+    <p class="note">
+      ただし、これは「このパソコンの、この同じブラウザ」の中だけに保存される仕組みです。
+      別のパソコンやスマートフォン、別のブラウザからは同じデータは見えません。ブラウザの
+      「閲覧履歴・データを消去」を行うと、この予定表のデータも一緒に消えてしまうことがあるので
+      注意してください。
+    </p>
+    <p>
+      画面全体の見方の③にある「初期化（全データ削除）」ボタンを押すと、入力した予定・教科・
+      レイアウト・持ち物ルールなど、すべてのデータを削除して初期状態に戻します。
+      <b>この操作は取り消せません。</b>押す前に確認メッセージが出るので、必要なデータが残って
+      いないか必ず確認してください。
+    </p>
+  </section>
+
+  <section class="help-section" id="opensource">
+    <h2>10. このアプリの公開のされ方について（学校で使っても大丈夫？）</h2>
+    <p>
+      「どこの誰が作ったか分からないアプリを学校で使って大丈夫？」と心配になるのは自然なことです。
+      このアプリは、次のような形で公開されている「オープンソース」というものなので、その点を
+      説明します。
+    </p>
+
+    <p>
+      <b>GitHub（ギットハブ）</b>とは、プログラムの「設計図」にあたる元のコード（プログラムの
+      中身そのものの文章）を、世界中の誰でも見られる状態でインターネット上に保管・公開できる
+      サービスです。多くのプログラマーが自分の作ったプログラムを公開するのに使っている、
+      いわば「プログラムの図書館」のような場所です。
+    </p>
+
+    <p>
+      このアプリの中身（動きを決めているコードすべて）は、GitHub上の次のページで
+      公開されています。
+    </p>
+
+    <p class="note">
+      公開ページ：<a href="https://github.com/Ikedia7/Weekly_Schedule" target="_blank" rel="noopener">https://github.com/Ikedia7/Weekly_Schedule</a><br />
+      配信元（実際にこのアプリが動いているページ）：<a href="https://ikedia7.github.io/Weekly_Schedule/" target="_blank" rel="noopener">https://ikedia7.github.io/Weekly_Schedule/</a>
+    </p>
+
+    <p>
+      このように、プログラムの中身を誰でも自由に確認できる状態で公開することを
+      <b>「オープンソース」</b>と呼びます。反対に、中身が非公開で外から何をしているか
+      分からないプログラムは「クローズドソース」と呼ばれます。
+    </p>
+
+    <p>学校で使う道具として見たときに、オープンソースであることには次のような意味があります。</p>
+
+    <ol class="shot-legend">
+      <li><b>隠れた動きがない</b> — プログラムの中身がすべて公開されているため、「実は裏で
+        どこかにデータを送っている」といった隠れた処理があれば、詳しい人が見ればすぐに
+        分かってしまいます。何も隠しようがない作りになっています。</li>
+      <li><b>データを外部に送る仕組みそのものが存在しない</b> — このアプリは「GitHub Pages」
+        という、あらかじめ用意されたファイルをそのまま配るだけの仕組み（データを保存したり
+        計算したりするサーバー側のプログラムを持たない仕組み）で公開されています。
+        入力した予定表のデータは、この画面を表示しているブラウザの中だけに保存され、
+        送りようがありません（詳しくは「9. データの保存・初期化について」）。</li>
+      <li><b>無料・アカウント登録不要</b> — 誰でもお金をかけずに、ログインもせずに使えます。</li>
+      <li><b>詳しい人にいつでも確認してもらえる</b> — 情報担当の先生やIT担当者に不安な点を
+        相談したいときは、上記のURLをそのまま見せれば、中身のコードを実際に確認してもらえます。</li>
+    </ol>
+
+    <p class="note">
+      とはいえ、個人情報（子どもの氏名など）を入力する場合は、念のため学校で定められている
+      ルール（校務での外部ツール利用に関する取り扱い）を確認してから使うと安心です。
+    </p>
+  </section>
+
+  <p class="help-intro">
+    このガイドで分からないことがあれば、まずは実際に画面を触って試してみてください。
+    入力してもすぐには失われないので、色々な操作を気軽に試せます。
+  </p>
+
+</body>
+</html>

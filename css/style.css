@@ -81,6 +81,22 @@ button:hover {
   background: #fdecec;
 }
 
+.help-btn {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  border: 1px solid #2f6fed;
+  border-radius: 4px;
+  background: #fff;
+  color: #2f6fed;
+  text-decoration: none;
+}
+
+.help-btn:hover {
+  background: #eef3fd;
+}
+
 .hint {
   font-size: 0.85rem;
   color: #555;
